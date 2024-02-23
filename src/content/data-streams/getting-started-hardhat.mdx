@@ -12,7 +12,7 @@ whatsnext: {
 }
 ---
 
-import { CodeSample, CopyText, ClickToZoom } from "@components"
+import { Aside, CodeSample } from "@components"
 import DataStreams from "@features/data-streams/common/DataStreams.astro"
 
 This guide shows you how to read data from a Data Streams feed, verify the answer, and store the answer onchain. This example uses the _[Streams Trade](/data-streams#streams-trade-using-data-streams-with-chainlink-automation) implementation_, with a [Chainlink Automation Log Trigger](/chainlink-automation/guides/log-trigger) to check for events that require data. For this example, the log trigger comes from a simple emitter contract. Chainlink Automation then uses `StreamsLookup` to retrieve a signed report from the Data Streams Engine, return the data in a callback, and run the [`performUpkeep` function](/chainlink-automation/reference/automation-interfaces#performupkeep-function-for-log-triggers) on your registered upkeep contract. The `performUpkeep` function calls the `verify` function on the verifier contract.
@@ -23,20 +23,21 @@ Note: If you want to learn how to use the _[Streams Direct](/data-streams#stream
 
 ## Before you begin
 
-- If you are new to smart contract development, learn how to [Deploy Your First Smart Contract](/quickstarts/deploy-your-first-contract) so you are familiar with the tools that are necessary for this guide:
-  - The [Solidity](https://soliditylang.org/) programming language
-  - The [Hardhat](https://hardhat.org/) development environment
-- Acquire testnet funds. This guide requires testnet ETH and LINK on _Arbitrum Sepolia_.
-  - Use the [Arbitrum Bridge](https://bridge.arbitrum.io/) to transfer testnet ETH from Ethereum Sepolia to Arbitrum Sepolia. Testnet ETH on Ethereum Sepolia is available at one of [several faucets](https://faucetlink.to/sepolia).
-  - Testnet LINK is available for Arbitrum Sepolia at [faucets.chain.link](https://faucets.chain.link/arbitrum-sepolia).
-- Learn how to [Fund your contract with LINK](/resources/fund-your-contract).
+This guide uses the [Hardhat](https://hardhat.org/) development environment to deploy and interact with the contracts. To learn more about Hardhat, read the [Hardhat Documentation](https://hardhat.org/hardhat-runner/docs/getting-started).
 
 ### Requirements
 
 - **Git**: Make sure you have Git installed. You can check your current version by running `git --version` in your terminal and download the latest version from the official [Git website](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) if necessary.
 - **Nodejs** and **npm**: Make sure you have Node.js and npm installed. You can check your current version by running `node -v` and `npm -v` in your terminal. Download the latest version from the official [Node.js website](https://nodejs.org/en/download/) if necessary.
+- **RPC URL**: You need an RPC URL for the Arbitrum Sepolia network. You can obtain an RPC URL by creating an account on [Alchemy](https://www.alchemy.com/) or [Infura](https://www.infura.io/) and setting up an Arbitrum Sepolia project.
+- **Private key**: You need the private key of the account that will deploy and interact with the contracts. You can use the private key of your [MetaMask wallet](https://metamask.io/).
+- **Testnet funds**: This guide requires testnet ETH and LINK on _Arbitrum Sepolia_.
+  - Use the [Arbitrum Bridge](https://bridge.arbitrum.io/) to transfer testnet ETH from Ethereum Sepolia to Arbitrum Sepolia. Testnet ETH on Ethereum Sepolia is available at one of [several faucets](https://faucetlink.to/sepolia).
+  - Testnet LINK is available for Arbitrum Sepolia at [faucets.chain.link](https://faucets.chain.link/arbitrum-sepolia).
 
-## Getting Started
+## Tutorial
+
+### Setup
 
 Clone the repository that contains the Hardhat project setup for this guide, and install all dependencies. This repository contains the Solidity contracts and the Hardhat configuration files you need to deploy and interact with the contracts.
 
@@ -45,8 +46,6 @@ git clone https://github.com/khadni/streams-trade-getting-started
 cd streams-trade-getting-started
 npm install
 ```
-
-## Setup
 
 Copy the `.env.example` file to a new file called `.env` and fill in the required environment variables.
 
@@ -58,9 +57,14 @@ The `.env` file contains the following environment variables:
 | Variable | Description |
 | ----- | -------- |
 | `ARBITRUM_SEPOLIA_RPC_URL` | The Remote Procedure Call (RPC) URL for the Arbitrum Sepolia network. This URL is used by your Hardhat environment to interact with the blockchain. You can obtain an RPC URL by creating an account on [Alchemy](https://www.alchemy.com/) or [Infura](https://www.infura.io/) and setting up an Arbitrum Sepolia project. |
-| `PRIVATE_KEY` | The private key of the account that will deploy the contracts. You can use the private key of your MetaMask wallet. You can find the private key in MetaMask by clicking the three dots next to your account and selecting "Account details". Then click "Export private key". |
+| `PRIVATE_KEY` | The private key of the account that will deploy the contracts. You can use the private key of your MetaMask wallet. You can find the private key in MetaMask by clicking the three dots next to your account and selecting "Account details". Then click "Show private key". |
 
-## Deploy the Chainlink Automation upkeep and the Log Emitter contracts
+<Aside type="caution" title="Protect your .env keys">
+  Do not expose keys in the .env file. Avoid pushing them to public repositories. Use development-only keys without
+  access to actual funds.
+</Aside>
+
+### Deploy the upkeep and the log emitter contracts
 
 Deploy an upkeep contract that is enabled to retrieve data from Data Streams. For this example, you will read from the ETH/USD Data Streams feed with ID `0x00027bbaff688c906a3e20a34fe951715d1018d262a5b66e38eda027a674cd1b` on Arbitrum Sepolia. See the [Data Streams Feed IDs](/data-streams/stream-ids) page for a complete list of available assets, IDs, and verifier proxy addresses.
 
@@ -81,7 +85,7 @@ Deploying the LogEmitter contract with the account: 0x45C90FBb5acC1a5c156a401B56
 
 Save the deployed contract addresses for both contracts. You will use these addresses later.
 
-## Fund the upkeep contract
+### Fund the upkeep contract
 
 Before registering your upkeep, you need to fund the StreamsUpkeep contract with testnet LINK tokens. Transfer `1.5` testnet LINK to the upkeep contract address you saved earlier. You can retrieve unused LINK later.
 
@@ -100,7 +104,7 @@ LINK balance of sender 0x45C90FBb5acC1a5c156a401B56Fea55e69E7669d is 6.5 LINK
 Transaction Hash: 0xf241bf4415ec081325ccd8ec3d54432e424afd16f1c81fa78b291ae9a0c03ce2
 ```
 
-## Register the upkeep
+### Register the upkeep
 
 Programmatically register a new `Log Trigger` upkeep:
 
@@ -116,7 +120,7 @@ Expect output similar to the following in your terminal:
 Upkeep registered successfully.
 ```
 
-## Emit a log
+### Emit a log
 
 Now, you can use your emitter contract to emit a log and initiate the upkeep, which retrieves data for the specified Data Streams feed ID.
 
@@ -135,7 +139,7 @@ Log emitted successfully in transaction: 0x236ee95faade12d1b6d497ee2e51ddf957f7d
 
 After the transaction is complete, the log is emitted, and the upkeep is triggered.
 
-## View the retrieved price
+### View the retrieved price
 
 The retrieved price is stored in the `s_last_retrieved_price` contract variable and emitted in the logs. To see the price retrieved by the `StreamsUpkeep` contract:
 
